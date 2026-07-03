@@ -228,6 +228,78 @@ button {
   cursor: default;
 }
 
+.composer .voice-btn {
+  background: var(--paper);
+  color: var(--ink);
+  border-left: var(--rule);
+  font-weight: 700;
+  padding: 0 20px;
+}
+
+.composer .voice-btn:hover:enabled {
+  background: var(--paper);
+  color: var(--red);
+}
+
+.composer .voice-btn.recording,
+.composer .voice-btn.recording:hover:enabled {
+  background: var(--red);
+  color: var(--paper);
+}
+
+.composer .voice-btn:disabled {
+  background: var(--paper);
+  color: rgba(0, 0, 0, 0.35);
+}
+
+.recording-strip {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 20px;
+  border-top: 2px solid var(--red);
+  flex: none;
+}
+
+.recording-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--red);
+  white-space: nowrap;
+}
+
+.recording-label::before {
+  content: '';
+  width: 9px;
+  height: 9px;
+  background: var(--red);
+  animation: pulse 1s steps(2, jump-none) infinite;
+}
+
+.level-meter {
+  flex: 1;
+  height: 8px;
+  border: 1px solid var(--red);
+  overflow: hidden;
+}
+
+.level-fill {
+  display: block;
+  height: 100%;
+  background: var(--red);
+  transition: width 80ms linear;
+}
+
+.recording-time {
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: rgba(0, 0, 0, 0.65);
+  white-space: nowrap;
+}
+
 /* Admin */
 
 .admin-page {

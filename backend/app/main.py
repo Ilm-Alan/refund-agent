@@ -12,14 +12,15 @@ Two SSE streams with different audiences:
 from __future__ import annotations
 
 import asyncio
+import base64
 import json
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import PlainTextResponse, StreamingResponse
 from pydantic import BaseModel, Field
 
-from app import store
+from app import store, voice
 from app.agent.loop import run_turn
 from app.config import POLICY_PATH
 from app.events import bus
@@ -108,6 +109,59 @@ async def chat(req: ChatRequest) -> StreamingResponse:
         yield _sse({"kind": "done"})
 
     return StreamingResponse(stream(), media_type="text/event-stream")
+
+
+@app.get("/api/config")
+def config() -> dict:
+    """Feature flags the frontend needs before rendering."""
+    return {"voice": voice.configured()}
+
+
+@app.post("/api/voice")
+async def voice_turn(
+    session_id: str = Form(min_length=1, max_length=64),
+    audio: UploadFile = File(),
+) -> dict:
+    """One spoken turn: transcribe, run the same agent loop, speak the reply."""
+    if not voice.configured():
+        raise HTTPException(status_code=503, detail="voice is not configured")
+    recording = await audio.read()
+    if len(recording) > 10_000_000:
+        raise HTTPException(status_code=413, detail="recording too large")
+
+    def emit(kind: str, payload: dict) -> None:
+        bus.publish(kind, session_id, payload)
+
+    try:
+        transcript = await voice.transcribe(recording, audio.filename or "audio.webm")
+    except Exception as exc:
+        bus.publish("error", session_id, {"where": "stt", "error": str(exc)})
+        raise HTTPException(status_code=502, detail="transcription failed") from exc
+    if not transcript:
+        raise HTTPException(status_code=422, detail="no speech detected")
+
+    messages = _sessions.setdefault(session_id, [])
+    messages.append({"role": "user", "content": transcript})
+    bus.publish("customer_message", session_id, {"text": transcript, "channel": "voice"})
+    try:
+        reply = await run_turn(messages, emit)
+    except Exception as exc:
+        bus.publish("error", session_id, {"where": "voice_chat", "error": str(exc)})
+        if messages and messages[-1]["role"] == "user":
+            messages.pop()
+        reply = (
+            "I'm sorry, something went wrong on our side. "
+            "Please try again in a moment."
+        )
+    bus.publish("agent_reply", session_id, {"text": reply, "channel": "voice"})
+
+    audio_b64 = None
+    try:
+        audio_b64 = base64.b64encode(await voice.synthesize(reply)).decode()
+    except Exception as exc:
+        # Reply still reaches the customer as text; the failure is on the trace.
+        bus.publish("error", session_id, {"where": "tts", "error": str(exc)})
+    return {"transcript": transcript, "reply": reply, "audio": audio_b64}
 
 
 @app.get("/api/events")

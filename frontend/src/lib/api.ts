@@ -33,6 +33,39 @@ export async function streamChat(
   }
 }
 
+export interface VoiceTurn {
+  transcript: string
+  reply: string
+  audio: string | null
+}
+
+export async function fetchConfig(): Promise<{ voice: boolean }> {
+  const response = await fetch('/api/config')
+  if (!response.ok) throw new Error(`config request failed: ${response.status}`)
+  return response.json()
+}
+
+// MediaRecorder containers vary by browser (Chrome records webm, Safari mp4);
+// the transcription API picks its decoder from the filename extension.
+function audioFilename(type: string): string {
+  if (type.includes('mp4')) return 'voice.mp4'
+  if (type.includes('ogg')) return 'voice.ogg'
+  return 'voice.webm'
+}
+
+/** POST one recorded voice turn; returns transcript, reply, and reply audio. */
+export async function sendVoice(
+  sessionId: string,
+  recording: Blob,
+): Promise<VoiceTurn> {
+  const form = new FormData()
+  form.append('session_id', sessionId)
+  form.append('audio', recording, audioFilename(recording.type))
+  const response = await fetch('/api/voice', { method: 'POST', body: form })
+  if (!response.ok) throw new Error(`voice request failed: ${response.status}`)
+  return response.json()
+}
+
 export async function fetchCrm(): Promise<CrmSnapshot> {
   const response = await fetch('/api/customers')
   if (!response.ok) throw new Error(`crm request failed: ${response.status}`)

@@ -2,7 +2,7 @@
 
 An AI customer support agent for e-commerce refunds, built as a vertical slice of a fictional retailer, Waypoint Supply. The model drives the conversation and gathers context through tools; a deterministic policy engine makes the actual approve/deny call. The agent cannot be talked past the refund policy, because the policy is code, not prompt.
 
-Two surfaces: a customer chat, and an admin dashboard that shows every step the agent takes in real time (model output, tool calls, policy verdicts with rule citations, retries, errors).
+Two surfaces: a customer chat that takes text or voice, and an admin dashboard that shows every step the agent takes in real time (model output, tool calls, policy verdicts with rule citations, retries, errors).
 
 ## How it decides
 
@@ -25,7 +25,8 @@ backend/
       policy.py    deterministic policy engine, rule-cited verdicts
     events.py      asyncio pub/sub bus with bounded replay history
     store.py       in-memory CRM loaded from data/, mutated by refunds
-    main.py        FastAPI: chat SSE, admin SSE firehose, CRM, policy, reset
+    voice.py       speech-to-text in, text-to-speech out
+    main.py        FastAPI: chat SSE, voice turns, admin SSE firehose, CRM, policy, reset
   data/            15 customer profiles + the refund policy document
   tests/           policy engine tests pinned to the CRM fixtures
 frontend/
@@ -42,6 +43,12 @@ Failure handling is part of the surface, not an apology: rate limits and 5xx res
 The agent targets the Anthropic Messages API as its provider contract. The client takes no credential or endpoint arguments, so the provider is chosen entirely by environment variables. Development ran against Ollama's free Anthropic-compatible endpoint; moving it to Claude, or any compatible provider, is an `.env` change, not a code change. See `backend/.env.example` for the three configurations (Ollama Cloud, Ollama local, Anthropic).
 
 Because open-model tool calling is the weakest link in that portability story, the dispatcher assumes the model will sometimes guess IDs it has not looked up yet, call tools in the wrong order, or invent reason codes. Server-side validation turns all of those into recoverable errors instead of wrong answers.
+
+## Voice
+
+Voice is a thin I/O layer, not a second agent. The browser records the microphone, the backend transcribes it, and the transcript runs through the exact same loop, tools, and policy gate as a typed message; the reply comes back as text plus synthesized speech. A spoken request cannot reach any code path a typed one could not, and voice turns appear in the admin trace tagged with their channel.
+
+The pipeline activates when `OPENAI_API_KEY` is set (see `.env.example`) and targets the OpenAI audio API shape, so any OpenAI-compatible endpoint works; `STT_MODEL`, `TTS_MODEL`, and `TTS_VOICE` are configurable. The chat shows a Speak button only when voice is configured. Transcription is treated as untrusted input like everything else: spoken emails arrive as "name at example dot com" and the model normalizes them before calling tools, with dispatcher validation as the backstop.
 
 ## Run it
 
@@ -80,6 +87,7 @@ The CRM is seeded so every policy rule has a customer that triggers it (day coun
 - `jordan.blake@example.net`: the account is frozen for fraud review. The admin trace shows the R6 escalation; the customer is told only that a specialist will follow up.
 - `priya.raghavan@example.org`, jacket on ORD-0952: outside the standard window but approved through the VIP extension (R5), which itself caps out for items over 200 USD (see `tomas.rivera@example.com`).
 - `rosa.delgado@example.com`, studio monitors on ORD-1061, opened, changed her mind: partial refund with the 15% restocking fee (R3), the one verdict kind the other conversations do not hit.
+- Any of the above, spoken: click Speak, say it, click Stop. Same loop, same gate, spoken reply.
 
 Retries are part of the demo too: on a rate-limited provider (Ollama's free tier, for instance) the trace shows red `retry` rows with the backoff schedule before the agent recovers. Order dates in `data/customers.json` are fixed, so the in-window cases age out eventually; the policy engine takes `today` as a parameter and the tests pin it, so the suite stays green regardless.
 

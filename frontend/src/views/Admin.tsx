@@ -153,11 +153,12 @@ function EventRow({ event }: { event: AgentEvent }) {
 
 function kindLabel(event: AgentEvent): string {
   const p = event.payload
+  const voice = p.channel === 'voice' ? ' (voice)' : ''
   switch (event.kind) {
     case 'customer_message':
-      return 'customer'
+      return `customer${voice}`
     case 'agent_reply':
-      return 'agent reply'
+      return `agent reply${voice}`
     case 'model_text':
       return 'model'
     case 'tool_call':
