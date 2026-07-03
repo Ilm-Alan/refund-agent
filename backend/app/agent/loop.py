@@ -125,9 +125,12 @@ async def run_turn(messages: list, emit: Emit) -> str:
         response = await _create_with_retry(messages, emit)
         model_ms = int((time.monotonic() - started) * 1000)
 
-        for block in response.content:
-            if block.type == "text" and block.text.strip():
-                emit("model_text", {"step": step, "text": block.text, "elapsed_ms": model_ms})
+        # Intermediate model text only; the final message is published as
+        # agent_reply by the caller, so the trace does not show it twice.
+        if response.stop_reason == "tool_use":
+            for block in response.content:
+                if block.type == "text" and block.text.strip():
+                    emit("model_text", {"step": step, "text": block.text, "elapsed_ms": model_ms})
 
         messages.append({"role": "assistant", "content": response.content})
         if response.stop_reason != "tool_use":
