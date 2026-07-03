@@ -279,6 +279,7 @@
           "shipping": 4.99,
           "items": [
             { "id": "SKU-7735", "name": "Silk scarf", "category": "apparel", "price": 85.0, "final_sale": false },
+            { "id": "SKU-7736", "name": "Linen napkin set of 4", "category": "home", "price": 32.0, "final_sale": false },
             { "id": "SKU-9010", "name": "E-book: Modern Bread", "category": "digital", "price": 14.0, "final_sale": false }
           ]
         }

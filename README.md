@@ -87,6 +87,7 @@ The CRM is seeded so every policy rule has a customer that triggers it (day coun
 - `jordan.blake@example.net`: the account is frozen for fraud review. The admin trace shows the R6 escalation; the customer is told only that a specialist will follow up.
 - `priya.raghavan@example.org`, jacket on ORD-0952: outside the standard window but approved through the VIP extension (R5), which itself caps out for items over 200 USD (see `tomas.rivera@example.com`).
 - `rosa.delgado@example.com`, studio monitors on ORD-1061, opened, changed her mind: partial refund with the 15% restocking fee (R3), the one verdict kind the other conversations do not hit.
+- `farida.haddad@example.org`, two refunds already this year: refund her scarf on ORD-1032 (that works, and puts her at the 3-per-year cap), then ask for the napkin set in the same conversation. The second request is refused under R4, because eligibility is ruled at execution time against current state, not remembered from earlier in the conversation. `tests/test_gate.py` pins this behavior.
 - Any of the above, spoken: click Speak, say it, click Stop. Same loop, same gate, spoken reply.
 
 Retries are part of the demo too: on a rate-limited provider (Ollama's free tier, for instance) the trace shows red `retry` rows with the backoff schedule before the agent recovers. Order dates in `data/customers.json` are fixed, so the in-window cases age out eventually; the policy engine takes `today` as a parameter and the tests pin it, so the suite stays green regardless.
