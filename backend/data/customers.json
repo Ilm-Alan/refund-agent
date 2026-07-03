@@ -1,0 +1,352 @@
+{
+  "customers": [
+    {
+      "id": "cust_001",
+      "name": "Maya Chen",
+      "email": "maya.chen@example.com",
+      "joined": "2023-11-04",
+      "vip": false,
+      "fraud_flag": false,
+      "refunds_past_year": 0,
+      "orders": [
+        {
+          "id": "ORD-1024",
+          "date": "2026-06-20",
+          "delivered": "2026-06-24",
+          "status": "delivered",
+          "shipping": 6.99,
+          "items": [
+            { "id": "SKU-4411", "name": "Solace wireless headphones", "category": "electronics", "price": 89.99, "final_sale": false },
+            { "id": "SKU-2210", "name": "USB-C charging cable, 2 m", "category": "electronics", "price": 12.5, "final_sale": false }
+          ]
+        },
+        {
+          "id": "ORD-0871",
+          "date": "2026-02-11",
+          "delivered": "2026-02-16",
+          "status": "delivered",
+          "shipping": 4.99,
+          "items": [
+            { "id": "SKU-3305", "name": "Ceramic pour-over set", "category": "home", "price": 42.0, "final_sale": false }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "cust_002",
+      "name": "Derek Vaughn",
+      "email": "derek.vaughn@example.net",
+      "joined": "2022-06-30",
+      "vip": false,
+      "fraud_flag": false,
+      "refunds_past_year": 1,
+      "orders": [
+        {
+          "id": "ORD-0937",
+          "date": "2026-05-14",
+          "delivered": "2026-05-18",
+          "status": "delivered",
+          "shipping": 0.0,
+          "items": [
+            { "id": "SKU-5102", "name": "Meridian mechanical keyboard", "category": "electronics", "price": 189.0, "final_sale": false }
+          ]
+        },
+        {
+          "id": "ORD-1101",
+          "date": "2026-06-29",
+          "delivered": null,
+          "status": "processing",
+          "shipping": 4.99,
+          "items": [
+            { "id": "SKU-2214", "name": "Desk mat, wool felt", "category": "home", "price": 34.0, "final_sale": false }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "cust_003",
+      "name": "Priya Raghavan",
+      "email": "priya.raghavan@example.org",
+      "joined": "2021-03-19",
+      "vip": true,
+      "fraud_flag": false,
+      "refunds_past_year": 1,
+      "orders": [
+        {
+          "id": "ORD-0952",
+          "date": "2026-05-24",
+          "delivered": "2026-05-28",
+          "status": "delivered",
+          "shipping": 0.0,
+          "items": [
+            { "id": "SKU-7720", "name": "Alpine down jacket", "category": "apparel", "price": 149.0, "final_sale": false }
+          ]
+        },
+        {
+          "id": "ORD-1088",
+          "date": "2026-06-25",
+          "delivered": "2026-06-28",
+          "status": "delivered",
+          "shipping": 0.0,
+          "items": [
+            { "id": "SKU-6612", "name": "Trail running socks, 3-pack", "category": "apparel", "price": 24.0, "final_sale": false }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "cust_004",
+      "name": "Tomas Rivera",
+      "email": "tomas.rivera@example.com",
+      "joined": "2022-09-08",
+      "vip": true,
+      "fraud_flag": false,
+      "refunds_past_year": 0,
+      "orders": [
+        {
+          "id": "ORD-0910",
+          "date": "2026-05-08",
+          "delivered": "2026-05-13",
+          "status": "delivered",
+          "shipping": 0.0,
+          "items": [
+            { "id": "SKU-8801", "name": "Lumina espresso machine", "category": "home", "price": 449.0, "final_sale": false }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "cust_005",
+      "name": "Jordan Blake",
+      "email": "jordan.blake@example.net",
+      "joined": "2025-12-02",
+      "vip": false,
+      "fraud_flag": true,
+      "refunds_past_year": 2,
+      "orders": [
+        {
+          "id": "ORD-1067",
+          "date": "2026-06-18",
+          "delivered": "2026-06-23",
+          "status": "delivered",
+          "shipping": 7.99,
+          "items": [
+            { "id": "SKU-4470", "name": "Nimbus smartwatch", "category": "electronics", "price": 229.0, "final_sale": false }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "cust_006",
+      "name": "Helen Okafor",
+      "email": "helen.okafor@example.org",
+      "joined": "2020-08-27",
+      "vip": false,
+      "fraud_flag": false,
+      "refunds_past_year": 3,
+      "orders": [
+        {
+          "id": "ORD-1043",
+          "date": "2026-06-15",
+          "delivered": "2026-06-19",
+          "status": "delivered",
+          "shipping": 8.99,
+          "items": [
+            { "id": "SKU-3319", "name": "Cast iron dutch oven", "category": "home", "price": 79.0, "final_sale": false }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "cust_007",
+      "name": "Sam Whitfield",
+      "email": "sam.whitfield@example.com",
+      "joined": "2024-04-16",
+      "vip": false,
+      "fraud_flag": false,
+      "refunds_past_year": 0,
+      "orders": [
+        {
+          "id": "ORD-1077",
+          "date": "2026-06-21",
+          "delivered": "2026-06-21",
+          "status": "delivered",
+          "shipping": 0.0,
+          "items": [
+            { "id": "SKU-9001", "name": "Digital gift card, 100 USD", "category": "gift_card", "price": 100.0, "final_sale": false }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "cust_008",
+      "name": "Anais Fontaine",
+      "email": "anais.fontaine@example.net",
+      "joined": "2023-02-05",
+      "vip": false,
+      "fraud_flag": false,
+      "refunds_past_year": 0,
+      "orders": [
+        {
+          "id": "ORD-1090",
+          "date": "2026-06-26",
+          "delivered": "2026-06-28",
+          "status": "delivered",
+          "shipping": 9.99,
+          "items": [
+            { "id": "SKU-7104", "name": "Artisan cheese selection", "category": "food_perishable", "price": 68.0, "final_sale": false }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "cust_009",
+      "name": "Marcus Ellison",
+      "email": "marcus.ellison@example.org",
+      "joined": "2021-11-30",
+      "vip": false,
+      "fraud_flag": false,
+      "refunds_past_year": 1,
+      "orders": [
+        {
+          "id": "ORD-1055",
+          "date": "2026-06-16",
+          "delivered": "2026-06-20",
+          "status": "delivered",
+          "shipping": 5.99,
+          "items": [
+            { "id": "SKU-6640", "name": "Linen blazer", "category": "apparel", "price": 96.0, "final_sale": true }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "cust_010",
+      "name": "Rosa Delgado",
+      "email": "rosa.delgado@example.com",
+      "joined": "2022-01-22",
+      "vip": false,
+      "fraud_flag": false,
+      "refunds_past_year": 0,
+      "orders": [
+        {
+          "id": "ORD-1061",
+          "date": "2026-06-17",
+          "delivered": "2026-06-21",
+          "status": "delivered",
+          "shipping": 0.0,
+          "items": [
+            { "id": "SKU-4482", "name": "Echo studio monitors, pair", "category": "electronics", "price": 259.0, "final_sale": false }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "cust_011",
+      "name": "Kenji Mori",
+      "email": "kenji.mori@example.net",
+      "joined": "2024-08-11",
+      "vip": false,
+      "fraud_flag": false,
+      "refunds_past_year": 0,
+      "orders": [
+        {
+          "id": "ORD-1095",
+          "date": "2026-06-27",
+          "delivered": null,
+          "status": "shipped",
+          "shipping": 0.0,
+          "items": [
+            { "id": "SKU-5150", "name": "Ergonomic task chair", "category": "home", "price": 385.0, "final_sale": false }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "cust_012",
+      "name": "Farida Haddad",
+      "email": "farida.haddad@example.org",
+      "joined": "2023-07-09",
+      "vip": true,
+      "fraud_flag": false,
+      "refunds_past_year": 2,
+      "orders": [
+        {
+          "id": "ORD-1032",
+          "date": "2026-06-10",
+          "delivered": "2026-06-14",
+          "status": "delivered",
+          "shipping": 4.99,
+          "items": [
+            { "id": "SKU-7735", "name": "Silk scarf", "category": "apparel", "price": 85.0, "final_sale": false },
+            { "id": "SKU-9010", "name": "E-book: Modern Bread", "category": "digital", "price": 14.0, "final_sale": false }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "cust_013",
+      "name": "Owen Gallagher",
+      "email": "owen.gallagher@example.com",
+      "joined": "2025-03-28",
+      "vip": false,
+      "fraud_flag": false,
+      "refunds_past_year": 0,
+      "orders": [
+        {
+          "id": "ORD-1002",
+          "date": "2026-04-02",
+          "delivered": "2026-04-07",
+          "status": "delivered",
+          "shipping": 3.99,
+          "items": [
+            { "id": "SKU-3350", "name": "Bamboo cutting board", "category": "home", "price": 28.0, "final_sale": false }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "cust_014",
+      "name": "Nadia Petrova",
+      "email": "nadia.petrova@example.net",
+      "joined": "2026-01-15",
+      "vip": false,
+      "fraud_flag": true,
+      "refunds_past_year": 1,
+      "orders": [
+        {
+          "id": "ORD-1071",
+          "date": "2026-06-19",
+          "delivered": "2026-06-24",
+          "status": "delivered",
+          "shipping": 6.99,
+          "items": [
+            { "id": "SKU-6655", "name": "Trail daypack 28L", "category": "sports", "price": 119.0, "final_sale": false }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "cust_015",
+      "name": "Gabriel Ncube",
+      "email": "gabriel.ncube@example.org",
+      "joined": "2024-10-03",
+      "vip": false,
+      "fraud_flag": false,
+      "refunds_past_year": 1,
+      "orders": [
+        {
+          "id": "ORD-1084",
+          "date": "2026-06-24",
+          "delivered": "2026-06-27",
+          "status": "delivered",
+          "shipping": 5.99,
+          "items": [
+            { "id": "SKU-2230", "name": "Insulated water bottle", "category": "sports", "price": 32.0, "final_sale": false },
+            { "id": "SKU-2231", "name": "Yoga mat, cork", "category": "sports", "price": 58.0, "final_sale": false }
+          ]
+        }
+      ]
+    }
+  ]
+}
