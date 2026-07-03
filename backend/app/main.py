@@ -14,10 +14,13 @@ from __future__ import annotations
 import asyncio
 import base64
 import json
+import os
+from pathlib import Path
 
 from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import PlainTextResponse, StreamingResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from app import store, voice
@@ -204,3 +207,11 @@ def reset() -> dict:
     _sessions.clear()
     bus.publish("demo_reset", "admin", {})
     return {"status": "reset"}
+
+
+# When a built frontend is present (the deployed container, or a local
+# `npm run build`), serve it from the same origin so the relative /api and
+# SSE paths need no proxy. Mounted last so every API route wins first.
+_dist = Path(os.environ.get("WEB_DIST", str(Path(__file__).resolve().parents[2] / "frontend" / "dist")))
+if _dist.is_dir():
+    app.mount("/", StaticFiles(directory=_dist, html=True), name="web")
