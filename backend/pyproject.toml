@@ -1,0 +1,14 @@
+[project]
+name = "refund-agent-backend"
+version = "0.1.0"
+description = "AI customer support agent that processes or denies e-commerce refunds against a strict policy"
+requires-python = ">=3.12"
+dependencies = [
+    "anthropic>=0.92",
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.30",
+    "python-dotenv>=1.0",
+]
+
+[tool.uv]
+package = false
