@@ -3,8 +3,8 @@
 A manual loop (rather than the SDK tool runner) is deliberate: each model
 response and tool result is published through `emit` before the next API
 call, which is what feeds the admin dashboard's live reasoning log. The
-client is constructed with no arguments, so the provider (Anthropic, Ollama,
-anything Anthropic-compatible) is chosen entirely by the environment.
+client takes no credential or endpoint arguments, so the provider (Anthropic,
+Ollama, anything Anthropic-compatible) is chosen entirely by the environment.
 """
 
 from __future__ import annotations
@@ -62,8 +62,9 @@ _BACKOFF_SECONDS = [2.0, 4.0, 8.0]
 def get_client() -> anthropic.AsyncAnthropic:
     global _client
     if _client is None:
-        # No arguments: base URL / credentials come from the environment.
-        # max_retries=0 because this loop owns retries and publishes them.
+        # No credential or endpoint arguments: base URL and key come from the
+        # environment. max_retries=0 because this loop owns retries and
+        # publishes them as events.
         _client = anthropic.AsyncAnthropic(max_retries=0)
     return _client
 
