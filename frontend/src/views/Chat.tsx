@@ -6,6 +6,15 @@ interface Message {
   text: string
 }
 
+// The agent is prompted to reply in plain text, but models still emit the
+// occasional **bold** span; render it rather than showing raw asterisks.
+function renderInline(text: string) {
+  const parts = text.split(/\*\*(.+?)\*\*/g)
+  return parts.map((part, i) =>
+    i % 2 === 1 ? <strong key={i}>{part}</strong> : part,
+  )
+}
+
 export default function Chat() {
   const [messages, setMessages] = useState<Message[]>([])
   const [draft, setDraft] = useState('')
@@ -77,7 +86,7 @@ export default function Chat() {
           )}
           {messages.map((message, i) => (
             <div key={i} className={`msg ${message.role}`}>
-              {message.text}
+              {renderInline(message.text)}
             </div>
           ))}
           {status && <div className="status-line">{status}</div>}
