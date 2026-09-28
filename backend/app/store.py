@@ -3,12 +3,17 @@
 Reads are plain dict lookups; writes (processed refunds, recorded denials)
 mutate the in-memory copy only, so a server restart or reset() returns the
 demo data to its original state.
+
+Order dates on disk are written relative to the file's seed_date and are
+shifted forward on load so that seed_date lands on today: every scenario
+keeps the day counts it was designed with (delivered 8 days ago, 45 days
+ago, ...) instead of aging out of the refund window.
 """
 
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 
 from app.config import CUSTOMERS_PATH
 
@@ -19,8 +24,20 @@ decisions: list[dict] = []
 def reset() -> None:
     """(Re)load customer data from disk and clear recorded decisions."""
     global _customers
-    _customers = json.loads(CUSTOMERS_PATH.read_text())["customers"]
+    data = json.loads(CUSTOMERS_PATH.read_text())
+    offset = date.today() - date.fromisoformat(data["seed_date"])
+    for customer in data["customers"]:
+        for order in customer["orders"]:
+            order["date"] = _shift(order["date"], offset)
+            order["delivered"] = _shift(order["delivered"], offset)
+    _customers = data["customers"]
     decisions.clear()
+
+
+def _shift(iso_date: str | None, offset: timedelta) -> str | None:
+    if iso_date is None:
+        return None
+    return (date.fromisoformat(iso_date) + offset).isoformat()
 
 
 def all_customers() -> list[dict]:

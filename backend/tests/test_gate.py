@@ -101,3 +101,15 @@ def test_gate_refusal_is_recorded_for_audit():
     )
     assert [d["decision"] for d in store.decisions] == ["refused_by_gate"]
     assert store.decisions[0]["rule_ids"] == ["R1"]
+
+
+def test_seed_scenarios_keep_their_day_counts():
+    # Order dates are shifted on load, so the README scenarios hold on any
+    # calendar date: Derek's keyboard is always 45 days past delivery.
+    result, is_error, _ = call(
+        "check_refund_eligibility",
+        customer_id="cust_002", order_id="ORD-0937", item_id="SKU-5102",
+        reason="changed_mind",
+    )
+    assert not is_error and not result["eligible"]
+    assert "delivered 45 days ago" in result["summary"]
