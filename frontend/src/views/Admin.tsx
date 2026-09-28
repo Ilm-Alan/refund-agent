@@ -33,9 +33,15 @@ export default function Admin() {
   useEffect(() => {
     fetchCrm().then(setCrm).catch(() => {})
     fetchPolicy().then(setPolicy).catch(() => {})
-    setEvents([])
     const source = new EventSource('/api/events')
-    source.onopen = () => setConnected(true)
+    source.onopen = () => {
+      // Every (re)connection replays the server's history from the start,
+      // and a restarted backend numbers events from 1 again: start over
+      // rather than duplicating rows, and reload the CRM it may have reset.
+      setEvents([])
+      refetchCrm()
+      setConnected(true)
+    }
     source.onerror = () => setConnected(false)
     source.onmessage = (message) => {
       const event: AgentEvent = JSON.parse(message.data)
