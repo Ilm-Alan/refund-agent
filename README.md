@@ -28,7 +28,7 @@ backend/
     voice.py       speech-to-text in, text-to-speech out
     main.py        FastAPI: chat SSE, voice turns, admin SSE firehose, CRM, policy, reset
   data/            15 customer profiles + the refund policy document
-  tests/           policy engine tests pinned to the CRM fixtures
+  tests/           policy engine, execution-time gate, and agent loop tests
 frontend/
   src/views/Chat.tsx    customer chat with streaming progress states
   src/views/Admin.tsx   live trace ledger, CRM table, decision log, policy
@@ -61,7 +61,7 @@ uv sync
 uv run uvicorn app.main:app --reload --port 8000 --timeout-graceful-shutdown 5
 ```
 
-Frontend (Node 20.19+ or 22+):
+Frontend (Node 20.19+ or 22.12+):
 
 ```sh
 cd frontend
@@ -80,17 +80,17 @@ The customer chat is at `/`, the admin dashboard at `#/admin`. Open them in two 
 
 ## Try it
 
-The CRM is seeded so every policy rule has a customer that triggers it (day counts below are relative to the seed date, 2026-07-02). A few conversations worth having:
+The CRM is seeded so every policy rule has a customer that triggers it. Order dates in `data/customers.json` are written relative to its `seed_date` and shifted on load so that date lands on today, which keeps the day counts below true whenever you run it. A few conversations worth having:
 
-- `maya.chen@example.com`, defective headphones on order ORD-1024, delivered 8 days before the seed date: clean full refund. Give a wrong email or order number first and watch the agent recover from the tool error in the trace.
-- `derek.vaughn@example.net`, keyboard on ORD-0937, delivered 45 days before the seed date: denied under the 30-day window (rule R1). Push back and escalate; the agent holds the line and cites the rule, and if the model ever tries to force the refund anyway, the policy gate refuses it server-side.
+- `maya.chen@example.com`, defective headphones on order ORD-1024, delivered 8 days ago: clean full refund. Give a wrong email or order number first and watch the agent recover from the tool error in the trace. Return the defective cable from the same order too and shipping comes back with it (R8).
+- `derek.vaughn@example.net`, keyboard on ORD-0937, delivered 45 days ago: denied under the 30-day window (rule R1). Push back and escalate; the agent holds the line and cites the rule, and if the model ever tries to force the refund anyway, the policy gate refuses it server-side.
 - `jordan.blake@example.net`: the account is frozen for fraud review. The admin trace shows the R6 escalation; the customer is told only that a specialist will follow up.
 - `priya.raghavan@example.org`, jacket on ORD-0952: outside the standard window but approved through the VIP extension (R5), which itself caps out for items over 200 USD (see `tomas.rivera@example.com`).
 - `rosa.delgado@example.com`, studio monitors on ORD-1061, opened, changed her mind: partial refund with the 15% restocking fee (R3), the one verdict kind the other conversations do not hit.
 - `farida.haddad@example.org`, two refunds already this year: refund her scarf on ORD-1032 (that works, and puts her at the 3-per-year cap), then ask for the napkin set in the same conversation. The second request is refused under R4, because eligibility is ruled at execution time against current state, not remembered from earlier in the conversation. `tests/test_gate.py` pins this behavior.
 - Any of the above, spoken: click Speak, say it, click Stop. Same loop, same gate, spoken reply.
 
-Retries are part of the demo too: on a rate-limited provider (Ollama's free tier, for instance) the trace shows red `retry` rows with the backoff schedule before the agent recovers. Order dates in `data/customers.json` are fixed, so the in-window cases age out eventually; the policy engine takes `today` as a parameter and the tests pin it, so the suite stays green regardless.
+Retries are part of the demo too: on a rate-limited provider (Ollama's free tier, for instance) the trace shows red `retry` rows with the backoff schedule before the agent recovers.
 
 ## What production would need
 
