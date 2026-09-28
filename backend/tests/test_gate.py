@@ -7,10 +7,12 @@ in a conversation does not survive a state change.
 """
 
 import json
+from datetime import date, timedelta
 
 import pytest
 
 from app import store
+from app.agent import policy
 from app.agent.tools import execute_tool
 
 
@@ -155,6 +157,25 @@ def test_shipping_kept_when_any_item_refunded_for_other_reason():
         reason="defective",
     )
     assert not is_error and last["amount"] == 12.50
+
+
+def test_day_counts_hold_for_a_server_running_past_midnight(monkeypatch):
+    # The store was loaded (by the fixture) today; the clock then moves on
+    # without a restart. Derek's keyboard must still be 45 days out.
+    class Tomorrow(date):
+        @classmethod
+        def today(cls):
+            return date.today() + timedelta(days=1)
+
+    monkeypatch.setattr(store, "date", Tomorrow)
+    monkeypatch.setattr(policy, "date", Tomorrow)
+    result, is_error, _ = call(
+        "check_refund_eligibility",
+        customer_id="cust_002", order_id="ORD-0937", item_id="SKU-5102",
+        reason="changed_mind",
+    )
+    assert not is_error
+    assert "delivered 45 days ago" in result["summary"]
 
 
 def test_arguments_outside_the_schema_are_rejected():
