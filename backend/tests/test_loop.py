@@ -1,4 +1,5 @@
-"""Agent loop tests, with a scripted model standing in for the provider.
+"""Agent loop and chat session tests, with a scripted model standing in for
+the provider.
 
 The Messages API rejects any history where an assistant tool_use block is not
 answered by a tool_result in the next user message, so a turn that ends or
@@ -11,10 +12,12 @@ import json
 
 import pytest
 from anthropic.types import Message, TextBlock, ToolUseBlock, Usage
+from fastapi import HTTPException
 from fastapi.testclient import TestClient
 
 from app import main, store
 from app.agent import loop
+from app.events import bus
 
 
 class ScriptedModel:
@@ -147,3 +150,73 @@ def test_text_sent_alongside_a_tool_call_reaches_the_customer(monkeypatch):
 
     assert "outside the 30-day window (R1)" in reply
     assert reply.endswith("Your request has been documented.")
+
+
+class HeldModel(ScriptedModel):
+    """A scripted model that answers only once `release` is set."""
+
+    def __init__(self, *steps):
+        super().__init__(*steps)
+        self.release = asyncio.Event()
+
+    async def create(self, **kwargs):
+        await self.release.wait()
+        return await super().create(**kwargs)
+
+
+async def drain(stream) -> list[dict]:
+    return [json.loads(chunk[6:]) async for chunk in stream if chunk.startswith("data: ")]
+
+
+def test_second_turn_on_a_busy_session_is_rejected(monkeypatch):
+    model = HeldModel(
+        response("end_turn", text("First answer.")),
+        response("end_turn", text("Second answer.")),
+    )
+    use_model(monkeypatch, model)
+
+    async def scenario():
+        first = await main.chat(main.ChatRequest(session_id="s1", message="one"))
+        with pytest.raises(HTTPException) as busy:
+            await main.chat(main.ChatRequest(session_id="s1", message="two"))
+        model.release.set()
+        first_events = await drain(first.body_iterator)
+        # Once the first turn is over the session takes turns again.
+        second = await main.chat(main.ChatRequest(session_id="s1", message="three"))
+        return busy.value, first_events, await drain(second.body_iterator)
+
+    busy, first_events, second_events = asyncio.run(scenario())
+
+    assert busy.status_code == 409
+    assert {"kind": "reply", "text": "First answer."} in first_events
+    assert {"kind": "reply", "text": "Second answer."} in second_events
+    customer_turns = [m["content"] for m in main._sessions["s1"] if m["role"] == "user"]
+    assert customer_turns == ["one", "three"]
+
+
+def test_turn_completes_and_is_traced_when_the_customer_disconnects(monkeypatch):
+    model = ScriptedModel(
+        response("tool_use", lookup()),
+        response("end_turn", text("Found your account.")),
+    )
+    use_model(monkeypatch, model)
+
+    async def scenario():
+        trace = bus.subscribe(replay=False)
+        stream = (await main.chat(main.ChatRequest(session_id="gone", message="hi"))).body_iterator
+        await anext(stream)  # first progress update, then the browser goes away
+        await stream.aclose()
+        replies = []
+        for _ in range(200):
+            while not trace.empty():
+                event = trace.get_nowait()
+                if event.kind == "agent_reply" and event.session_id == "gone":
+                    replies.append(event.payload["text"])
+            if replies:
+                break
+            await asyncio.sleep(0.01)
+        bus.unsubscribe(trace)
+        return replies
+
+    assert asyncio.run(scenario()) == ["Found your account."]
+    assert_valid_history(main._sessions["gone"])

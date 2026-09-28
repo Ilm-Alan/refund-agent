@@ -43,6 +43,11 @@ app.add_middleware(
 # Conversation history per chat session, in memory.
 _sessions: dict[str, list] = {}
 
+# The turn running for each session. A session takes one turn at a time (a
+# second would interleave history), and holding the task here keeps it
+# running to completion even if the customer disconnects mid-turn.
+_active_turns: dict[str, asyncio.Task] = {}
+
 # Customer-safe progress labels; anything not listed here stays admin-only.
 _PROGRESS_LABELS = {
     "lookup_customer": "Looking up your account",
@@ -67,13 +72,42 @@ def health() -> dict:
     return {"status": "ok"}
 
 
+def _start_turn(session_id: str, text: str, emit, where: str, extra: dict) -> asyncio.Task:
+    """Start one customer turn in the background, or 409 if one is running."""
+    if session_id in _active_turns:
+        raise HTTPException(
+            status_code=409, detail="a reply is still in progress for this conversation"
+        )
+    task = asyncio.create_task(_run_customer_turn(session_id, text, emit, where, extra))
+    _active_turns[session_id] = task
+    task.add_done_callback(lambda _: _active_turns.pop(session_id, None))
+    return task
+
+
+async def _run_customer_turn(session_id: str, text: str, emit, where: str, extra: dict) -> str:
+    """One turn end to end: history, agent loop, rollback, and the trace."""
+    messages = _sessions.setdefault(session_id, [])
+    turn_start = len(messages)
+    messages.append({"role": "user", "content": text})
+    bus.publish("customer_message", session_id, {"text": text, **extra})
+    try:
+        reply = await run_turn(messages, emit)
+    except Exception as exc:  # surfaced to admin stream by the loop already
+        reply = (
+            "I'm sorry, something went wrong on our side. "
+            "Please try again in a moment."
+        )
+        bus.publish("error", session_id, {"where": where, "error": str(exc)})
+        # Drop the whole failed turn (the customer message and any tool
+        # round trips) so history stays consistent for a retry.
+        del messages[turn_start:]
+    bus.publish("agent_reply", session_id, {"text": reply, **extra})
+    return reply
+
+
 @app.post("/api/chat")
 async def chat(req: ChatRequest) -> StreamingResponse:
     """Run one agent turn, streaming customer-safe progress then the reply."""
-    messages = _sessions.setdefault(req.session_id, [])
-    turn_start = len(messages)
-    messages.append({"role": "user", "content": req.message})
-
     progress: asyncio.Queue = asyncio.Queue()
 
     def emit(kind: str, payload: dict) -> None:
@@ -83,10 +117,11 @@ async def chat(req: ChatRequest) -> StreamingResponse:
         elif kind == "retry":
             progress.put_nowait({"kind": "working", "label": "Reconnecting, one moment"})
 
-    bus.publish("customer_message", req.session_id, {"text": req.message})
+    # Started here rather than inside the stream, so the turn finishes and
+    # reaches the trace even if the customer's connection drops.
+    task = _start_turn(req.session_id, req.message, emit, where="chat", extra={})
 
     async def stream():
-        task = asyncio.create_task(run_turn(messages, emit))
         while True:
             queue_read = asyncio.create_task(progress.get())
             done, _ = await asyncio.wait(
@@ -97,22 +132,10 @@ async def chat(req: ChatRequest) -> StreamingResponse:
                 continue
             queue_read.cancel()
             break
-        try:
-            reply = task.result()
-        except Exception as exc:  # surfaced to admin stream by the loop already
-            reply = (
-                "I'm sorry, something went wrong on our side. "
-                "Please try again in a moment."
-            )
-            bus.publish("error", req.session_id, {"where": "chat", "error": str(exc)})
-            # Drop the whole failed turn (the customer message and any tool
-            # round trips) so history stays consistent for a retry.
-            del messages[turn_start:]
         # Flush any progress events that raced with completion.
         while not progress.empty():
             yield _sse(progress.get_nowait())
-        bus.publish("agent_reply", req.session_id, {"text": reply})
-        yield _sse({"kind": "reply", "text": reply})
+        yield _sse({"kind": "reply", "text": task.result()})
         yield _sse({"kind": "done"})
 
     return StreamingResponse(stream(), media_type="text/event-stream")
@@ -147,20 +170,11 @@ async def voice_turn(
     if not transcript:
         raise HTTPException(status_code=422, detail="no speech detected")
 
-    messages = _sessions.setdefault(session_id, [])
-    turn_start = len(messages)
-    messages.append({"role": "user", "content": transcript})
-    bus.publish("customer_message", session_id, {"text": transcript, "channel": "voice"})
-    try:
-        reply = await run_turn(messages, emit)
-    except Exception as exc:
-        bus.publish("error", session_id, {"where": "voice_chat", "error": str(exc)})
-        del messages[turn_start:]
-        reply = (
-            "I'm sorry, something went wrong on our side. "
-            "Please try again in a moment."
-        )
-    bus.publish("agent_reply", session_id, {"text": reply, "channel": "voice"})
+    task = _start_turn(
+        session_id, transcript, emit, where="voice_chat", extra={"channel": "voice"}
+    )
+    # Shielded so a dropped request does not cancel the turn itself.
+    reply = await asyncio.shield(task)
 
     audio_b64 = None
     try:
