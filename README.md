@@ -80,7 +80,7 @@ The customer chat is at `/`, the admin dashboard at `#/admin`. Open them in two 
 
 ## Try it
 
-The CRM is seeded so every policy rule has a customer that triggers it. Order dates in `data/customers.json` are written relative to its `seed_date` and shifted on load so that date lands on today, which keeps the day counts below true whenever you run it. A few conversations worth having:
+The CRM is seeded so every policy rule has a customer that triggers it. Order dates in `data/customers.json` are written relative to its `seed_date` and kept shifted so that date is always today (re-anchored when the day changes, no restart needed), which keeps the day counts below true whenever you run it. A few conversations worth having:
 
 - `maya.chen@example.com`, defective headphones on order ORD-1024, delivered 8 days ago: clean full refund. Give a wrong email or order number first and watch the agent recover from the tool error in the trace. Return the defective cable from the same order too and shipping comes back with it (R8).
 - `derek.vaughn@example.net`, keyboard on ORD-0937, delivered 45 days ago: denied under the 30-day window (rule R1). Push back and escalate; the agent holds the line and cites the rule, and if the model ever tries to force the refund anyway, the policy gate refuses it server-side.
