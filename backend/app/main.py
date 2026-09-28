@@ -1,6 +1,9 @@
 """FastAPI entry point for the refund agent.
 
-Run with:  uv run uvicorn app.main:app --reload --port 8000
+Run with:  uv run uvicorn app.main:app --reload --port 8000 --timeout-graceful-shutdown 5
+
+The shutdown timeout matters: the admin SSE stream never ends on its own, so
+without it uvicorn waits forever for that connection on reload or stop.
 
 Two SSE streams with different audiences:
 - POST /api/chat streams one agent turn to the customer UI: progress labels

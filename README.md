@@ -58,7 +58,7 @@ Backend (Python 3.12+, [uv](https://docs.astral.sh/uv/)):
 cd backend
 cp .env.example .env   # pick a provider block, add your key
 uv sync
-uv run uvicorn app.main:app --reload --port 8000
+uv run uvicorn app.main:app --reload --port 8000 --timeout-graceful-shutdown 5
 ```
 
 Frontend (Node 20.19+ or 22+):
