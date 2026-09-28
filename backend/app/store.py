@@ -76,9 +76,10 @@ def record_decision(decision: str, payload: dict) -> dict:
     return record
 
 
-def apply_refund(customer: dict, item: dict) -> None:
+def apply_refund(customer: dict, item: dict, reason: str) -> None:
     """Execute an approved refund against the in-memory CRM state."""
     item["refunded"] = True
+    item["refund_reason"] = reason
     customer["refunds_past_year"] = customer.get("refunds_past_year", 0) + 1
 
 

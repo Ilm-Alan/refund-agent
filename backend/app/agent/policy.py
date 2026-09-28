@@ -26,6 +26,10 @@ NON_REFUNDABLE_CATEGORIES = {"gift_card", "food_perishable", "digital"}
 FULL_REFUND_REASONS = {"defective", "damaged_in_transit", "not_as_described"}
 VALID_REASONS = FULL_REFUND_REASONS | {"changed_mind", "arrived_late", "other"}
 
+# R8: shipping is refunded only when every item on the order is refunded for
+# one of these reasons.
+SHIPPING_REFUND_REASONS = {"defective", "not_as_described"}
+
 # One quotable sentence per rule, condensed from data/refund_policy.md.
 RULES = {
     "R1": "Refunds apply to delivered items only, and must be requested "
@@ -43,7 +47,9 @@ RULES = {
     "requests must be escalated to a human specialist.",
     "R7": "Refunds are issued to the original payment method only, within "
     "5-10 business days of approval.",
-    "R8": "A refund never exceeds the amount paid for the item.",
+    "R8": "A refund never exceeds the amount paid for the item; shipping is "
+    "refunded only when every item on the order is refunded as defective or "
+    "not as described.",
 }
 
 
@@ -179,11 +185,25 @@ def check_eligibility(
             f"({item['price']:.2f} minus 15% restocking fee: opened "
             "electronics, changed mind).",
         )
+
+    # R8: shipping comes back with the last item refunded on the order, and
+    # only if every item on it went back as defective or not as described.
+    shipping = 0.0
+    if reason in SHIPPING_REFUND_REASONS and all(
+        other.get("refunded") and other.get("refund_reason") in SHIPPING_REFUND_REASONS
+        for other in order["items"]
+        if other["id"] != item["id"]
+    ):
+        shipping = order.get("shipping", 0.0)
+    detail = f"delivered {days_since} days ago, reason: {reason}"
+    if shipping:
+        rule_ids.append("R8")
+        detail = f"{item['price']:.2f} plus {shipping:.2f} shipping; {detail}"
+    amount = round(item["price"] + shipping, 2)
     return Verdict(
         eligible=True,
         kind="full",
-        refund_amount=item["price"],
+        refund_amount=amount,
         rule_ids=rule_ids,
-        summary=f"Eligible for full refund of {item['price']:.2f} USD "
-        f"(delivered {days_since} days ago, reason: {reason}).",
+        summary=f"Eligible for full refund of {amount:.2f} USD ({detail}).",
     )

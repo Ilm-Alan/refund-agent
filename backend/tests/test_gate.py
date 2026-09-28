@@ -126,3 +126,32 @@ def test_non_boolean_opened_is_rejected_not_coerced():
     assert is_error and "'opened'" in result["error"]
     rosa = store.get_customer("cust_010")
     assert rosa["refunds_past_year"] == 0
+
+
+def test_shipping_refunded_with_last_item_when_all_defective():
+    first, is_error, _ = call(
+        "process_refund",
+        customer_id="cust_001", order_id="ORD-1024", item_id="SKU-4411",
+        reason="defective",
+    )
+    assert not is_error and first["amount"] == 89.99
+    last, is_error, _ = call(
+        "process_refund",
+        customer_id="cust_001", order_id="ORD-1024", item_id="SKU-2210",
+        reason="not_as_described",
+    )
+    assert not is_error and last["amount"] == 19.49  # 12.50 + 6.99 shipping
+
+
+def test_shipping_kept_when_any_item_refunded_for_other_reason():
+    call(
+        "process_refund",
+        customer_id="cust_001", order_id="ORD-1024", item_id="SKU-4411",
+        reason="changed_mind",
+    )
+    last, is_error, _ = call(
+        "process_refund",
+        customer_id="cust_001", order_id="ORD-1024", item_id="SKU-2210",
+        reason="defective",
+    )
+    assert not is_error and last["amount"] == 12.50

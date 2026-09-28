@@ -263,8 +263,9 @@ def _dispatch(name: str, tool_input: dict, emit: Emit) -> dict:
 
     if name == "process_refund":
         customer, order, item = _resolve(tool_input)
+        reason = _reason(tool_input)
         verdict = check_eligibility(
-            customer, order, item, _reason(tool_input),
+            customer, order, item, reason,
             opened=_opened(tool_input),
         )
         full = {
@@ -285,7 +286,7 @@ def _dispatch(name: str, tool_input: dict, emit: Emit) -> dict:
                 + safe["summary"]
                 + " No refund has been issued."
             )
-        store.apply_refund(customer, item)
+        store.apply_refund(customer, item, reason)
         decision = store.record_decision("refund_processed", full)
         emit("refund_processed", decision)
         return {
