@@ -209,7 +209,12 @@ export default function Chat() {
       <div className="chat-column">
         <div className="chat-toolbar">
           <h1>Refunds</h1>
-          <button type="button" className="linklike" onClick={startOver}>
+          <button
+            type="button"
+            className="linklike"
+            onClick={startOver}
+            disabled={busy || recording}
+          >
             New conversation
           </button>
         </div>
