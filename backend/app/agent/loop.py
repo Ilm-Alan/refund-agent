@@ -126,21 +126,25 @@ async def run_turn(messages: list, emit: Emit) -> str:
         response = await _create_with_retry(messages, emit)
         model_ms = int((time.monotonic() - started) * 1000)
 
+        # A tool_use block must be answered even when the response stopped
+        # for another reason (max_tokens cut it off, or a provider reports a
+        # different stop_reason): an unanswered tool_use makes every later
+        # request in the session invalid.
+        tool_uses = [b for b in response.content if b.type == "tool_use"]
+
         # Intermediate model text only; the final message is published as
         # agent_reply by the caller, so the trace does not show it twice.
-        if response.stop_reason == "tool_use":
+        if tool_uses:
             for block in response.content:
                 if block.type == "text" and block.text.strip():
                     emit("model_text", {"step": step, "text": block.text, "elapsed_ms": model_ms})
 
         messages.append({"role": "assistant", "content": response.content})
-        if response.stop_reason != "tool_use":
+        if not tool_uses:
             return "".join(b.text for b in response.content if b.type == "text")
 
         results = []
-        for block in response.content:
-            if block.type != "tool_use":
-                continue
+        for block in tool_uses:
             emit("tool_call", {"step": step, "tool": block.name, "input": dict(block.input)})
             tool_started = time.monotonic()
             result, is_error = execute_tool(block.name, dict(block.input), emit)
