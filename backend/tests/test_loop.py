@@ -124,3 +124,26 @@ def test_tool_use_cut_off_by_max_tokens_is_still_answered(monkeypatch):
     assert reply == "Found your account."
     assert_valid_history(messages)
     assert_valid_history(model.requests[-1])
+
+
+def test_text_sent_alongside_a_tool_call_reaches_the_customer(monkeypatch):
+    # Models often explain a denial and record it in the same response; the
+    # explanation must not be lost just because a tool call came with it.
+    deny = ToolUseBlock(
+        id="toolu_2", type="tool_use", name="deny_refund",
+        input={
+            "customer_id": "cust_002", "order_id": "ORD-0937",
+            "item_id": "SKU-5102", "reason": "changed_mind",
+        },
+    )
+    model = ScriptedModel(
+        response("tool_use", text("That order is outside the 30-day window (R1)."), deny),
+        response("end_turn", text("Your request has been documented.")),
+    )
+    use_model(monkeypatch, model)
+    messages = [{"role": "user", "content": "refund my keyboard"}]
+
+    reply = asyncio.run(loop.run_turn(messages, lambda kind, payload: None))
+
+    assert "outside the 30-day window (R1)" in reply
+    assert reply.endswith("Your request has been documented.")

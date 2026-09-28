@@ -118,9 +118,14 @@ async def _create_with_retry(messages: list, emit: Emit) -> anthropic.types.Mess
 async def run_turn(messages: list, emit: Emit) -> str:
     """Run one customer turn to completion. Appends to `messages` in place.
 
-    The caller has already appended the new user message. Returns the final
-    customer-facing text; every intermediate step goes through `emit`.
+    The caller has already appended the new user message. Returns the
+    customer-facing text of the whole turn; every intermediate step goes
+    through `emit`.
     """
+    # Text the model writes alongside a tool call is addressed to the
+    # customer too (models often explain a denial and record it in one
+    # response), so the reply collects the text of every step.
+    said: list[str] = []
     for step in range(MAX_AGENT_STEPS):
         started = time.monotonic()
         response = await _create_with_retry(messages, emit)
@@ -131,17 +136,18 @@ async def run_turn(messages: list, emit: Emit) -> str:
         # different stop_reason): an unanswered tool_use makes every later
         # request in the session invalid.
         tool_uses = [b for b in response.content if b.type == "tool_use"]
+        text = "".join(b.text for b in response.content if b.type == "text").strip()
+        if text:
+            said.append(text)
 
-        # Intermediate model text only; the final message is published as
-        # agent_reply by the caller, so the trace does not show it twice.
-        if tool_uses:
-            for block in response.content:
-                if block.type == "text" and block.text.strip():
-                    emit("model_text", {"step": step, "text": block.text, "elapsed_ms": model_ms})
+        # The trace marks text that came with tool calls as a model step; the
+        # caller publishes the full reply as agent_reply.
+        if tool_uses and text:
+            emit("model_text", {"step": step, "text": text, "elapsed_ms": model_ms})
 
         messages.append({"role": "assistant", "content": response.content})
         if not tool_uses:
-            return "".join(b.text for b in response.content if b.type == "text")
+            return "\n\n".join(said)
 
         results = []
         for block in tool_uses:
