@@ -113,3 +113,16 @@ def test_seed_scenarios_keep_their_day_counts():
     )
     assert not is_error and not result["eligible"]
     assert "delivered 45 days ago" in result["summary"]
+
+
+def test_non_boolean_opened_is_rejected_not_coerced():
+    # A string "false" must not be read as truthy and cost the customer a
+    # restocking fee.
+    result, is_error, _ = call(
+        "process_refund",
+        customer_id="cust_010", order_id="ORD-1061", item_id="SKU-4482",
+        reason="changed_mind", opened="false",
+    )
+    assert is_error and "'opened'" in result["error"]
+    rosa = store.get_customer("cust_010")
+    assert rosa["refunds_past_year"] == 0

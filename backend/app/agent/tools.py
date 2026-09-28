@@ -171,6 +171,13 @@ def _reason(tool_input: dict) -> str:
     return reason
 
 
+def _opened(tool_input: dict) -> bool:
+    opened = tool_input.get("opened", False)
+    if not isinstance(opened, bool):
+        raise ToolError(f"invalid 'opened' {opened!r}: expected true or false")
+    return opened
+
+
 def _customer_view(customer: dict) -> dict:
     """Profile as the model may see it: no fraud flag, summarized orders."""
     return {
@@ -243,7 +250,7 @@ def _dispatch(name: str, tool_input: dict, emit: Emit) -> dict:
         customer, order, item = _resolve(tool_input)
         verdict = check_eligibility(
             customer, order, item, _reason(tool_input),
-            opened=bool(tool_input.get("opened", False)),
+            opened=_opened(tool_input),
         )
         full = {
             "customer_id": customer["id"],
@@ -258,7 +265,7 @@ def _dispatch(name: str, tool_input: dict, emit: Emit) -> dict:
         customer, order, item = _resolve(tool_input)
         verdict = check_eligibility(
             customer, order, item, _reason(tool_input),
-            opened=bool(tool_input.get("opened", False)),
+            opened=_opened(tool_input),
         )
         full = {
             "customer_id": customer["id"],
