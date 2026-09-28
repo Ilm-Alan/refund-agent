@@ -120,6 +120,10 @@ TOOLS = [
     },
 ]
 
+# The argument names each schema accepts (every schema is additionalProperties
+# false), re-checked because not every provider enforces the schema.
+_ARGUMENTS = {tool["name"]: set(tool["input_schema"]["properties"]) for tool in TOOLS}
+
 
 class ToolError(Exception):
     """Validation failure returned to the model as an error tool_result."""
@@ -232,6 +236,14 @@ def execute_tool(name: str, tool_input: dict, emit: Emit) -> tuple[str, bool]:
 
 
 def _dispatch(name: str, tool_input: dict, emit: Emit) -> dict:
+    allowed = _ARGUMENTS.get(name)
+    unexpected = sorted(set(tool_input) - allowed) if allowed is not None else []
+    if unexpected:
+        raise ToolError(
+            f"unexpected argument(s) {', '.join(map(repr, unexpected))} for "
+            f"{name}; it accepts only {', '.join(sorted(allowed))}"
+        )
+
     if name == "lookup_customer":
         email = _require_str(tool_input, "email")
         customer = store.find_customer_by_email(email)

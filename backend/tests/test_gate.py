@@ -155,3 +155,16 @@ def test_shipping_kept_when_any_item_refunded_for_other_reason():
         reason="defective",
     )
     assert not is_error and last["amount"] == 12.50
+
+
+def test_arguments_outside_the_schema_are_rejected():
+    # The model cannot pass an amount; an attempt must fail loudly rather
+    # than be silently ignored while the refund goes through.
+    result, is_error, events = call(
+        "process_refund",
+        customer_id="cust_001", order_id="ORD-1024", item_id="SKU-4411",
+        reason="defective", amount=500.0,
+    )
+    assert is_error and "'amount'" in result["error"]
+    assert not any(kind == "refund_processed" for kind, _ in events)
+    assert store.get_customer("cust_001")["refunds_past_year"] == 0
